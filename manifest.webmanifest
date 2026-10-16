@@ -1,0 +1,16 @@
+{
+  "name": "Opos Técnico de Laboratorio",
+  "short_name": "Opos TEL",
+  "description": "Tests, simulacros y exámenes oficiales para las oposiciones de Técnico de Laboratorio.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f7",
+  "theme_color": "#0e4f63",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
