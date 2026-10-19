@@ -82,7 +82,7 @@ body.dock main{padding-bottom:calc(var(--tab-h) + 100px + env(safe-area-inset-bo
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 .nav .brand{display:none}
-.nav .items{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);height:var(--tab-h)}
+.nav .items{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tab-h)}
 .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:.7rem;font-weight:600;cursor:pointer;position:relative;letter-spacing:.01em}
 .nav button svg{width:22px;height:22px}
 .nav button.on{color:var(--accent)}
@@ -278,11 +278,6 @@ textarea{min-height:140px;resize:vertical;line-height:1.45}
 .score{font:600 1rem var(--f-mono);font-variant-numeric:tabular-nums;padding:4px 8px;border-radius:7px}
 .score.ok{color:var(--ok);background:var(--ok-soft)} .score.bad{color:var(--bad);background:var(--bad-soft)}
 
-/* Tarjeta de memoria */
-.flash{min-height:44vh;display:flex;flex-direction:column;justify-content:center;gap:16px;text-align:center;padding:28px 20px;cursor:pointer;user-select:none}
-.flash .q{font-size:1.1rem;font-weight:600;line-height:1.45}
-.flash .ans{font-size:1.1rem;font-weight:650;color:var(--ok);padding-top:14px;border-top:1px dashed var(--line-2)}
-.flash .hintx{font:600 .72rem var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 
 /* Diálogo y aviso */
 .dlg{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
@@ -318,7 +313,6 @@ body.insession .toast,body.dock .toast{bottom:calc(100px + env(safe-area-inset-b
     <button data-tab="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Panel</button>
     <button data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2 2 4-4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>Test</button>
     <button data-tab="exams"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Exámenes</button>
-    <button data-tab="flash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="14" height="13" rx="2"/><path d="M7 4h11a2 2 0 0 1 2 2v10"/></svg>Tarjetas</button>
     <button data-tab="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 11h8M8 15h5"/></svg>Notas</button>
     <button data-tab="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Más</button>
   </div>
@@ -699,7 +693,7 @@ function go(t){
   if(window.__reloadPending) return location.reload();   // hay versión nueva: se aplica al cambiar de pestaña
   stopTimer(); session = null; noteCtx = null; tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
-  ({home:renderHome, test:renderTestSetup, exams:renderExams, flash:renderFlashSetup, notes:renderNotes, more:renderMore})[t]();
+  ({home:renderHome, test:renderTestSetup, exams:renderExams, notes:renderNotes, more:renderMore})[t]();
 }
 const pool = () => Q.filter(q => !q.dup && q.lang !== "ca");
 function topicStats(){
@@ -1079,47 +1073,6 @@ function parseExam(qText, kText){
     else skipped.push(n);
   });
   return {found:blocks.length, questions, skipped};
-}
-
-/* ================= TARJETAS ================= */
-let fl = null;
-function renderFlashSetup(){
-  app.innerHTML = `${head("Repaso activo", "Tarjetas de memoria", "Lee la pregunta, piensa la respuesta y toca la tarjeta para girarla. Lo que marques cuenta en tus estadísticas.")}
-    <div class="stack">
-    <div class="card checks"><label><input type="checkbox" id="fFailed"><span class="grow">Solo falladas pendientes</span></label></div>
-    ${topicChecks("ft")}</div>`;
-  bindChecks();
-  chrome({title:"Tarjetas", dock:true});
-  actions(`<button class="btn primary" id="fStart">Empezar repaso</button>`);
-  on("#fStart", () => {
-    const topics = [...app.querySelectorAll("input[name=ft]:checked")].map(c => c.value);
-    let pool = Q.filter(q => !q.dup && q.lang !== "ca" && topics.includes(q.t));
-    if($("#fFailed").checked) pool = pool.filter(q => isFailed(q.id));
-    if(!pool.length) return toast("No hay tarjetas con esos criterios.");
-    fl = {cards:shuffle(pool), i:0, flipped:false, ok:0, fail:0}; renderFlash();
-  });
-}
-function renderFlash(){
-  const f = fl;
-  if(f.i >= f.cards.length){
-    chrome({title:"Tarjetas", back:() => go("flash")});
-    const n = f.ok + f.fail;
-    app.innerHTML = `<div class="card result">${ring(pct(f.ok, n), 112, pct(f.ok, n) + "%", "sabidas")}<div><h2 style="margin-top:0">Ronda terminada</h2><p class="muted">${f.ok} sabidas · ${f.fail} por repasar</p><button class="btn primary" id="fAgain">Otra ronda</button></div></div>`;
-    on("#fAgain", () => go("flash")); return;
-  }
-  const c = f.cards[f.i];
-  chrome({title:"Tarjetas", sub:`${f.i+1} de ${f.cards.length}`, back:() => { f.i = f.cards.length; renderFlash(); }, session:true, meta:`${f.i+1}/${f.cards.length}`, progress:pct(f.i, f.cards.length)});
-  app.innerHTML = `<div class="qmeta">${tag(c.t)}${c.src ? `<span class="src">${esc(c.src)}</span>` : ""}</div>
-    ${c.ctx ? caseBlock(c.ctx, false) : ""}
-    <div class="card flash" id="card">
-      <div class="q">${esc(c.q)}</div>
-      ${f.flipped ? `<div class="ans">${esc(c.o[c.a])}</div>${c.e ? `<div class="small muted">${esc(c.e)}</div>` : ""}` : `<div class="hintx">Toca para ver la respuesta</div>`}
-    </div>`;
-  const flip = () => { if(!f.flipped){ f.flipped = true; renderFlash(); } };
-  on("#card", flip);
-  actions(f.flipped ? `<button class="btn" id="no">No la sabía</button><button class="btn primary" id="yes">La sabía</button>` : `<button class="btn primary" id="flip">Mostrar respuesta</button>`);
-  const mark = ok => { record(c.id, ok); ok ? f.ok++ : f.fail++; f.i++; f.flipped = false; renderFlash(); };
-  on("#flip", flip); on("#yes", () => mark(true)); on("#no", () => mark(false));
 }
 
 /* ================= MÁS ================= */
