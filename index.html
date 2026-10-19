@@ -231,6 +231,14 @@ textarea{min-height:140px;resize:vertical;line-height:1.45}
 .verdict svg{width:22px;height:22px;margin-top:1px}
 .verdict.okv svg{color:var(--ok)} .verdict.badv svg{color:var(--bad)}
 .verdict b{display:block}
+.qnote{margin-top:12px}
+.qnbtn{display:inline-flex;align-items:center;gap:7px;border:1px dashed var(--line-2);background:none;border-radius:9px;padding:9px 13px;cursor:pointer;color:var(--ink-2);font-weight:600;font-size:.88rem}
+.qnbtn svg{width:16px;height:16px}
+.qnbox{border:1px solid color-mix(in srgb,var(--warn) 35%,var(--line));background:var(--warn-soft);border-radius:var(--r);padding:10px 12px}
+.qnbox .xl{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.qnbox .xl svg{width:14px;height:14px;flex:none}
+.qnbox textarea{width:100%;min-height:72px;border:0;background:transparent;resize:vertical;padding:0;outline:none;font-size:.95rem;line-height:1.45}
+.ncard .ans{font-size:.9rem;color:var(--ok);font-weight:600;margin:0 0 10px}
 .expl{margin-top:8px;font-size:.92rem;color:var(--ink-2)}
 .expl .xl{display:block;font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 .expl.warn .xl{color:#b45309}
@@ -516,7 +524,7 @@ function classify(text){
 
 /* ---------- Estado guardado en el navegador ---------- */
 const KEY = "opoTEL.v1";
-const defaults = () => ({stats:{}, history:[], custom:[], exams:[], notes:{}, days:[], settings:{penalty:1/3, perQuestionSec:60, theme:"auto"}});
+const defaults = () => ({stats:{}, history:[], custom:[], exams:[], notes:{}, qnotes:{}, days:[], settings:{penalty:1/3, perQuestionSec:60, theme:"auto"}});
 function load(){
   try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); return Object.assign(defaults(), s, {settings:Object.assign(defaults().settings, s.settings || {})}); } }catch(e){}
   return defaults();
@@ -601,6 +609,8 @@ const IC = {
   x:'<path d="M18 6L6 18M6 6l12 12"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>',
   chev:'<path d="M9 6l6 6-6 6"/>',
+  share:'<path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>',
+  note:'<path d="M5 3h10l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 11h8M8 15h5"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   ext:'<path d="M14 4h6v6"/><path d="M10 14L20 4"/><path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5"/>'
 };
@@ -613,6 +623,22 @@ function explBlock(q){
   const warn = q.e.startsWith("⚠");
   const label = warn ? "Plantilla oficial discutible" : q.origin === "exam" ? "Explicación orientativa" : "Explicación";
   return `<div class="expl${warn ? " warn" : ""}"><span class="xl">${label}</span>${esc(warn ? q.e.replace(/^⚠\s*/, "") : q.e)}</div>`;
+}
+function noteBlock(q){
+  const n = S.qnotes[q.id];
+  return `<div class="qnote" data-qn="${q.id}">${n ? "" : `<button class="qnbtn">${icon("note")}Añadir nota</button>`}
+    <div class="qnbox"${n ? "" : " hidden"}><span class="xl">${icon("note")}Mi nota</span><textarea placeholder="Lo que quieres recordar de esta pregunta…">${esc(n ? n.t : "")}</textarea></div></div>`;
+}
+function bindNotes(){
+  app.querySelectorAll(".qnote").forEach(w => {
+    const id = w.dataset.qn, b = w.querySelector(".qnbtn"), box = w.querySelector(".qnbox"), ta = box.querySelector("textarea");
+    if(b) b.onclick = () => { b.remove(); box.hidden = false; ta.focus(); };
+    ta.oninput = () => {
+      if(ta.value.trim()) S.qnotes[id] = {t:ta.value, at:(S.qnotes[id] && S.qnotes[id].at) || Date.now()};
+      else delete S.qnotes[id];
+      save();
+    };
+  });
 }
 function caseBlock(ctx, open){
   const m = ctx.match(/^\s*((?:CASO|SUPUESTO)S?\s+(?:PR[AÁ]CTICO|CL[IÍ]NICO)S?\s*(?:N[ºo°]\.?\s*)?(\d+)?)\s*[:.\-–]?\s*/i);
@@ -828,8 +854,10 @@ function renderQ(){
       <div class="opts">${it.opts.map(opt).join("")}</div>
     </div>
     ${!exam && s.revealed ? `<div class="verdict ${good ? "okv" : "badv"}">${icon(good ? "check" : "x")}<div><b>${good ? "Respuesta correcta" : `Incorrecta · la correcta es la ${L[it.correct]}`}</b>${explBlock(it.q)}</div></div>` : ""}
+    ${noteBlock(it.q)}
     ${exam ? `<h3>Navegación <span class="count">${answered}/${total}</span></h3><div class="card qgrid">${s.items.map((x,k) => `<button data-go="${k}" class="${x.answer !== null ? "ans" : ""} ${k === s.i ? "cur" : ""}">${k+1}</button>`).join("")}</div>` : ""}`;
   app.querySelectorAll(".opt").forEach(b => b.onclick = () => answer(+b.dataset.k));
+  bindNotes();
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { s.i = +b.dataset.go; renderQ(); });
   if(exam){
     actions(`<button class="btn" id="prev" ${s.i === 0 ? "disabled" : ""}>Anterior</button>
@@ -912,7 +940,9 @@ function renderResult(items, r, exam){
         <p style="font-weight:600;margin:0 0 8px">${esc(it.q.q)}</p>
         ${it.opts.map((o,k) => `<div class="o ${k === it.correct ? "c" : k === it.answer ? "w" : ""}"><b>${L[k]}</b><span>${esc(o)}</span></div>`).join("")}
         ${explBlock(it.q)}
+        ${noteBlock(it.q)}
       </div>`; }).join("")}</div>`;
+  bindNotes();
   on("#again", () => go("test"));
   let only = false;
   on("#onlyBad", e => { only = !only; e.currentTarget.textContent = only ? "Ver todas" : "Ver solo fallos"; app.querySelectorAll('.rev[data-st="ok"]').forEach(c => c.hidden = only); });
@@ -1074,11 +1104,58 @@ function renderMore(){
   app.innerHTML = `${head("Herramientas", "Más opciones")}
   <div class="list">
     <button class="row" id="mTem"><span class="ico">${icon("book")}</span><span class="grow"><span class="t">Temario y apuntes</span><span class="s">Progreso por tema y tus notas</span></span>${CHEV}</button>
+    <button class="row" id="mNotes"><span class="ico">${icon("note")}</span><span class="grow"><span class="t">Mis notas</span><span class="s">${nNotes()} ${nNotes() === 1 ? "nota" : "notas"} · cópialas o compártelas</span></span>${CHEV}</button>
     <button class="row" id="mMine"><span class="ico">${icon("edit")}</span><span class="grow"><span class="t">Mis preguntas</span><span class="s">${S.custom.length} añadidas por ti</span></span>${CHEV}</button>
     <button class="row" id="mSet"><span class="ico">${icon("gear")}</span><span class="grow"><span class="t">Ajustes y copia de seguridad</span><span class="s">Penalización, tiempo y aspecto</span></span>${CHEV}</button>
   </div>
   <p class="foot">Las preguntas propias de la app son orientativas. Las de exámenes oficiales llevan la respuesta de la plantilla publicada por cada tribunal. Contrasta siempre con el temario y la normativa vigente de tu convocatoria.</p>`;
-  on("#mTem", renderTemario); on("#mMine", renderMine); on("#mSet", renderSettings);
+  on("#mNotes", renderNotes); on("#mTem", renderTemario); on("#mMine", renderMine); on("#mSet", renderSettings);
+}
+const nNotes = () => Object.keys(S.qnotes).length + Object.values(S.notes).filter(v => v && v.trim()).length;
+function notedList(){
+  const byId = new Map(Q.map(q => [q.id, q]));
+  return Object.entries(S.qnotes).map(([id, n]) => ({q:byId.get(id), n})).filter(x => x.q).sort((a,b) => b.n.at - a.n.at);
+}
+function notesText(){
+  const L2 = notedList(), tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
+  let out = "MIS NOTAS · Opos Técnico de Laboratorio\n";
+  L2.forEach(({q, n}) => {
+    out += `\n• ${SHORT[q.t] || "Otros"}${q.src ? ` · ${q.src} nº ${q.n}` : ""}\nPregunta: ${q.q}\nRespuesta: ${q.o[q.a]}\nNota: ${n.t.trim()}\n`;
+  });
+  if(tn.length){ out += "\nAPUNTES POR TEMA\n"; tn.forEach(t => out += `\n• ${t.name}\n${S.notes[t.id].trim()}\n`); }
+  return out;
+}
+function renderNotes(){
+  chrome({title:"Mis notas", back:renderMore});
+  const list = notedList(), tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
+  const canShare = !!navigator.share;
+  app.innerHTML = `${head("Apuntes", "Mis notas", "Las notas que añades en cada pregunta. Cópialas o compártelas para pasarlas a tus apuntes.")}
+  ${list.length || tn.length ? `<div class="btnrow" style="margin-bottom:12px">
+      ${canShare ? `<button class="btn primary" id="nShare" style="flex:1;justify-content:center">${icon("share")}Compartir</button>` : ""}
+      <button class="btn${canShare ? "" : " primary"}" id="nCopy" style="flex:1;justify-content:center">Copiar todo</button>
+      ${list.length ? `<button class="btn" id="nPrac" style="flex:1;justify-content:center">Practicar estas</button>` : ""}
+    </div>
+    <textarea id="nOut" hidden readonly style="min-height:160px;margin-bottom:12px"></textarea>` : ""}
+  <div class="stack">
+    ${list.length ? list.map(({q}) => `<div class="card pad rev ncard">
+        <div class="qmeta" style="margin-bottom:8px">${tag(q.t)}${q.src ? `<span class="src">${esc(q.src)} · nº ${q.n}</span>` : ""}</div>
+        ${q.ctx ? caseBlock(q.ctx, false) : ""}
+        <p style="font-weight:600;margin:0 0 6px">${esc(q.q)}</p>
+        <p class="ans">✓ ${esc(q.o[q.a])}</p>
+        ${noteBlock(q)}
+        <button class="btn ghost danger" data-ndel="${q.id}" style="margin-top:6px;min-height:38px;padding:0 10px">Borrar nota</button>
+      </div>`).join("") : `<div class="card empty">Aún no tienes notas. Mientras practicas, toca <b>Añadir nota</b> debajo de cualquier pregunta.</div>`}
+    ${tn.length ? `<h3 style="margin:10px 0 0">Apuntes por tema <span class="count">${tn.length}</span></h3>${tn.map(t => `<div class="card pad" style="${tc(t.id)}"><div class="qmeta" style="margin-bottom:8px">${tag(t.id)}</div><div style="white-space:pre-wrap;font-size:.94rem">${esc(S.notes[t.id])}</div></div>`).join("")}` : ""}
+  </div>`;
+  bindNotes();
+  const fallback = txt => { const o = $("#nOut"); o.hidden = false; o.value = txt; o.focus(); o.select(); toast("Selecciona y copia el texto que ha aparecido."); };
+  on("#nCopy", () => { const txt = notesText(); try{ navigator.clipboard.writeText(txt).then(() => toast("Notas copiadas. Pégalas en tus apuntes."), () => fallback(txt)); }catch(e){ fallback(txt); } });
+  on("#nShare", () => { navigator.share({title:"Mis notas · Opos Laboratorio", text:notesText()}).catch(() => {}); });
+  on("#nPrac", () => startSession({mode:"practice", label:"Preguntas con nota"}, notedList().map(x => x.q)));
+  app.querySelectorAll("[data-ndel]").forEach(b => b.onclick = async () => {
+    if(!await ask("¿Borrar esta nota?", "Borrar")) return;
+    delete S.qnotes[b.dataset.ndel]; save(); renderNotes();
+  });
 }
 function renderTemario(){
   chrome({title:"Temario y apuntes", back:renderMore});
