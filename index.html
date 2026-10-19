@@ -82,7 +82,7 @@ body.dock main{padding-bottom:calc(var(--tab-h) + 100px + env(safe-area-inset-bo
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 .nav .brand{display:none}
-.nav .items{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);height:var(--tab-h)}
+.nav .items{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);height:var(--tab-h)}
 .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:.7rem;font-weight:600;cursor:pointer;position:relative;letter-spacing:.01em}
 .nav button svg{width:22px;height:22px}
 .nav button.on{color:var(--accent)}
@@ -319,6 +319,7 @@ body.insession .toast,body.dock .toast{bottom:calc(100px + env(safe-area-inset-b
     <button data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2 2 4-4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>Test</button>
     <button data-tab="exams"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Exámenes</button>
     <button data-tab="flash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="14" height="13" rx="2"/><path d="M7 4h11a2 2 0 0 1 2 2v10"/></svg>Tarjetas</button>
+    <button data-tab="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 11h8M8 15h5"/></svg>Notas</button>
     <button data-tab="more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Más</button>
   </div>
 </nav>
@@ -698,7 +699,7 @@ function go(t){
   if(window.__reloadPending) return location.reload();   // hay versión nueva: se aplica al cambiar de pestaña
   stopTimer(); session = null; noteCtx = null; tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
-  ({home:renderHome, test:renderTestSetup, exams:renderExams, flash:renderFlashSetup, more:renderMore})[t]();
+  ({home:renderHome, test:renderTestSetup, exams:renderExams, flash:renderFlashSetup, notes:renderNotes, more:renderMore})[t]();
 }
 const pool = () => Q.filter(q => !q.dup && q.lang !== "ca");
 function topicStats(){
@@ -949,7 +950,8 @@ function renderResult(items, r, exam){
     </div>
     <div class="btnrow" style="margin-top:12px"><button class="btn primary" id="again" style="flex:1;justify-content:center">Nuevo test</button>
       <button class="btn" id="onlyBad" style="flex:1;justify-content:center">Ver solo fallos</button></div>
-    ${noteCtx ? `<div style="margin-top:12px">${testNoteBlock(noteCtx.sid, S.tests[noteCtx.sid] && S.tests[noteCtx.sid].note)}</div>` : ""}
+    ${noteCtx ? `<div style="margin-top:12px">${testNoteBlock(noteCtx.sid, S.tests[noteCtx.sid] && S.tests[noteCtx.sid].note)}</div>
+      <button class="btn ghost" id="toNotes" style="margin-top:4px;padding:0 4px;min-height:40px">${icon("note")}Ver todas mis notas</button>` : ""}
     <h3>Por tema</h3>
     <div class="list">${Object.entries(byT).sort((a,b) => b[1].n - a[1].n).map(([t,o]) => `<div class="tbar" style="${tc(t)}"><span class="nm"><i></i><span>${esc(SHORT[t] || t)}</span></span><span class="v">${o.ok}/${o.n}</span><span class="meter"><i class="${o.ok / o.n >= .5 ? "okm" : "badm"}" style="width:${pct(o.ok, o.n)}%"></i></span></div>`).join("")}</div>
     <h3>Revisión <span class="count">${items.length}</span></h3>
@@ -964,6 +966,7 @@ function renderResult(items, r, exam){
         ${noteBlock(it.q)}
       </div>`; }).join("")}</div>`;
   bindNotes(); bindTestNotes();
+  on("#toNotes", () => go("notes"));
   on("#again", () => go("test"));
   let only = false;
   on("#onlyBad", e => { only = !only; e.currentTarget.textContent = only ? "Ver todas" : "Ver solo fallos"; app.querySelectorAll('.rev[data-st="ok"]').forEach(c => c.hidden = only); });
@@ -1162,7 +1165,7 @@ function notesText(G){
   return out;
 }
 function renderNotes(){
-  chrome({title:"Mis notas", back:renderMore});
+  chrome({title:"Mis notas", back: tab === "more" ? renderMore : null});
   const groups = noteGroups(), tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
   const canShare = !!navigator.share, nq = groups.reduce((a, G) => a + G.items.length, 0);
   app.innerHTML = `${head("Apuntes", "Mis notas", "Ordenadas por test, del más reciente al más antiguo. Cópialas o compártelas para pasarlas a tus apuntes.")}
