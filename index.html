@@ -693,6 +693,7 @@ const head = (eyebrow, title, desc = "") => `<div class="pagehead"><div class="e
 let tab = "home";
 $("#tabs").onclick = e => { const b = e.target.closest("button[data-tab]"); if(b) go(b.dataset.tab); };
 function go(t){
+  if(window.__reloadPending) return location.reload();   // hay versión nueva: se aplica al cambiar de pestaña
   stopTimer(); session = null; noteCtx = null; tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
   ({home:renderHome, test:renderTestSetup, exams:renderExams, flash:renderFlashSetup, more:renderMore})[t]();
@@ -1301,6 +1302,6 @@ applyTheme();
 go("home");
 </script>
 
-<script>if("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
+<script>if("serviceWorker" in navigator) addEventListener("load", () => { const had = !!navigator.serviceWorker.controller; navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(reg => { document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") reg.update().catch(() => {}); }); }).catch(() => {}); navigator.serviceWorker.addEventListener("controllerchange", () => { if(!had) return; if(typeof session === "undefined" || !session) location.reload(); else window.__reloadPending = true; });});</script>
 </body>
 </html>
