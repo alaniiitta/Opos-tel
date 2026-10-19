@@ -524,7 +524,7 @@ function classify(text){
 
 /* ---------- Estado guardado en el navegador ---------- */
 const KEY = "opoTEL.v1";
-const defaults = () => ({stats:{}, history:[], custom:[], exams:[], notes:{}, qnotes:{}, days:[], settings:{penalty:1/3, perQuestionSec:60, theme:"auto"}});
+const defaults = () => ({stats:{}, history:[], custom:[], exams:[], notes:{}, qnotes:{}, tests:{}, days:[], settings:{penalty:1/3, perQuestionSec:60, theme:"auto"}});
 function load(){
   try{ const raw = localStorage.getItem(KEY); if(raw){ const s = JSON.parse(raw); return Object.assign(defaults(), s, {settings:Object.assign(defaults().settings, s.settings || {})}); } }catch(e){}
   return defaults();
@@ -629,12 +629,28 @@ function noteBlock(q){
   return `<div class="qnote" data-qn="${q.id}">${n ? "" : `<button class="qnbtn">${icon("note")}Añadir nota</button>`}
     <div class="qnbox"${n ? "" : " hidden"}><span class="xl">${icon("note")}Mi nota</span><textarea placeholder="Lo que quieres recordar de esta pregunta…">${esc(n ? n.t : "")}</textarea></div></div>`;
 }
+function ensureTest(){
+  const c = noteCtx; if(!c) return null;
+  return S.tests[c.sid] = S.tests[c.sid] || {label:c.label, date:c.date, note:"", r:c.r || null};
+}
+function testScore(r){ if(!noteCtx) return; noteCtx.r = r; if(S.tests[noteCtx.sid]) S.tests[noteCtx.sid].r = r; }
+function testNoteBlock(sid, text){
+  return `<div class="qnbox tnote"><span class="xl">${icon("note")}Notas de este test</span><textarea data-tn="${sid}" placeholder="Qué te ha costado, temas a repasar, ideas para apuntar…">${esc(text || "")}</textarea></div>`;
+}
+function bindTestNotes(){
+  app.querySelectorAll("[data-tn]").forEach(ta => ta.oninput = () => {
+    const sid = ta.dataset.tn;
+    const t = S.tests[sid] || (noteCtx && noteCtx.sid === sid ? ensureTest() : null);
+    if(t){ t.note = ta.value; save(); }
+  });
+}
 function bindNotes(){
   app.querySelectorAll(".qnote").forEach(w => {
     const id = w.dataset.qn, b = w.querySelector(".qnbtn"), box = w.querySelector(".qnbox"), ta = box.querySelector("textarea");
+    const sid = S.qnotes[id] ? S.qnotes[id].sid : noteCtx && noteCtx.sid;
     if(b) b.onclick = () => { b.remove(); box.hidden = false; ta.focus(); };
     ta.oninput = () => {
-      if(ta.value.trim()) S.qnotes[id] = {t:ta.value, at:(S.qnotes[id] && S.qnotes[id].at) || Date.now()};
+      if(ta.value.trim()){ S.qnotes[id] = {t:ta.value, at:(S.qnotes[id] && S.qnotes[id].at) || Date.now(), sid}; if(sid && noteCtx && noteCtx.sid === sid) ensureTest(); }
       else delete S.qnotes[id];
       save();
     };
@@ -677,7 +693,7 @@ const head = (eyebrow, title, desc = "") => `<div class="pagehead"><div class="e
 let tab = "home";
 $("#tabs").onclick = e => { const b = e.target.closest("button[data-tab]"); if(b) go(b.dataset.tab); };
 function go(t){
-  stopTimer(); session = null; tab = t;
+  stopTimer(); session = null; noteCtx = null; tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
   ({home:renderHome, test:renderTestSetup, exams:renderExams, flash:renderFlashSetup, more:renderMore})[t]();
 }
@@ -796,7 +812,7 @@ function renderTestSetup(){
 }
 
 /* ================= SESIÓN DE TEST ================= */
-let session = null, timer = null;
+let session = null, timer = null, noteCtx = null;   // noteCtx: test al que se asocian las notas nuevas
 function stopTimer(){ if(timer){ clearInterval(timer); timer = null; } }
 function pick({topics, n, filter, origin = "any", ca = ""}){
   let pool = Q.filter(q => !q.dup && topics.includes(q.t) && (origin === "any" || q.origin === origin) && (!ca || q.ca === ca) && (q.lang !== "ca" || ca === q.ca));
@@ -816,6 +832,7 @@ function prep(q, keepOrder){
 function startSession(cfg, list){
   const qs = list || pick(cfg);
   if(!qs.length) return toast("No hay preguntas con esos criterios.");
+  noteCtx = {sid:Date.now().toString(36), label:cfg.label, date:Date.now()};
   session = {mode:cfg.mode, label:cfg.label, items:(cfg.keepOrder ? qs : shuffle(qs)).map(q => prep(q, cfg.keepOrder)), i:0, revealed:false, done:false};
   if(cfg.mode === "exam"){
     session.remaining = qs.length * S.settings.perQuestionSec;
@@ -900,14 +917,14 @@ function finishPractice(){
   const s = session; s.done = true;
   const done = s.items.filter(x => x.answer !== null);
   if(!done.length){ session = null; return go(tab); }
-  const r = score(done); S.history.push({date:Date.now(), label:s.label, ...r}); save();
+  const r = score(done); S.history.push({date:Date.now(), label:s.label, ...r}); testScore(r); save();
   renderResult(done, r, false);
 }
 function finishExam(){
   stopTimer();
   const s = session; s.done = true;
   s.items.forEach(it => { if(it.answer !== null) record(it.q.id, it.answer === it.correct); });
-  const r = score(s.items); S.history.push({date:Date.now(), label:s.label, ...r}); save();
+  const r = score(s.items); S.history.push({date:Date.now(), label:s.label, ...r}); testScore(r); save();
   renderResult(s.items, r, true);
 }
 function renderResult(items, r, exam){
@@ -929,6 +946,7 @@ function renderResult(items, r, exam){
     </div>
     <div class="btnrow" style="margin-top:12px"><button class="btn primary" id="again" style="flex:1;justify-content:center">Nuevo test</button>
       <button class="btn" id="onlyBad" style="flex:1;justify-content:center">Ver solo fallos</button></div>
+    ${noteCtx ? `<div style="margin-top:12px">${testNoteBlock(noteCtx.sid, S.tests[noteCtx.sid] && S.tests[noteCtx.sid].note)}</div>` : ""}
     <h3>Por tema</h3>
     <div class="list">${Object.entries(byT).sort((a,b) => b[1].n - a[1].n).map(([t,o]) => `<div class="tbar" style="${tc(t)}"><span class="nm"><i></i><span>${esc(SHORT[t] || t)}</span></span><span class="v">${o.ok}/${o.n}</span><span class="meter"><i class="${o.ok / o.n >= .5 ? "okm" : "badm"}" style="width:${pct(o.ok, o.n)}%"></i></span></div>`).join("")}</div>
     <h3>Revisión <span class="count">${items.length}</span></h3>
@@ -942,7 +960,7 @@ function renderResult(items, r, exam){
         ${explBlock(it.q)}
         ${noteBlock(it.q)}
       </div>`; }).join("")}</div>`;
-  bindNotes();
+  bindNotes(); bindTestNotes();
   on("#again", () => go("test"));
   let only = false;
   on("#onlyBad", e => { only = !only; e.currentTarget.textContent = only ? "Ver todas" : "Ver solo fallos"; app.querySelectorAll('.rev[data-st="ok"]').forEach(c => c.hidden = only); });
@@ -1111,50 +1129,82 @@ function renderMore(){
   <p class="foot">Las preguntas propias de la app son orientativas. Las de exámenes oficiales llevan la respuesta de la plantilla publicada por cada tribunal. Contrasta siempre con el temario y la normativa vigente de tu convocatoria.</p>`;
   on("#mNotes", renderNotes); on("#mTem", renderTemario); on("#mMine", renderMine); on("#mSet", renderSettings);
 }
-const nNotes = () => Object.keys(S.qnotes).length + Object.values(S.notes).filter(v => v && v.trim()).length;
-function notedList(){
-  const byId = new Map(Q.map(q => [q.id, q]));
-  return Object.entries(S.qnotes).map(([id, n]) => ({q:byId.get(id), n})).filter(x => x.q).sort((a,b) => b.n.at - a.n.at);
-}
-function notesText(){
-  const L2 = notedList(), tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
-  let out = "MIS NOTAS · Opos Técnico de Laboratorio\n";
-  L2.forEach(({q, n}) => {
-    out += `\n• ${SHORT[q.t] || "Otros"}${q.src ? ` · ${q.src} nº ${q.n}` : ""}\nPregunta: ${q.q}\nRespuesta: ${q.o[q.a]}\nNota: ${n.t.trim()}\n`;
+const nNotes = () => Object.keys(S.qnotes).length + Object.values(S.tests).filter(t => t.note && t.note.trim()).length + Object.values(S.notes).filter(v => v && v.trim()).length;
+const fdate = d => new Date(d).toLocaleDateString("es-ES", {day:"numeric", month:"short", year:"numeric"}) + " · " + new Date(d).toLocaleTimeString("es-ES", {hour:"2-digit", minute:"2-digit"});
+function noteGroups(){
+  const byId = new Map(Q.map(q => [q.id, q])), g = {};
+  Object.entries(S.qnotes).forEach(([id, n]) => {
+    const q = byId.get(id); if(!q) return;
+    const k = n.sid && S.tests[n.sid] ? n.sid : "_";
+    (g[k] = g[k] || []).push({q, n});
   });
-  if(tn.length){ out += "\nAPUNTES POR TEMA\n"; tn.forEach(t => out += `\n• ${t.name}\n${S.notes[t.id].trim()}\n`); }
+  const out = Object.entries(S.tests).filter(([sid, t]) => (t.note && t.note.trim()) || g[sid])
+    .sort((a,b) => b[1].date - a[1].date)
+    .map(([sid, t]) => ({sid, t, items:(g[sid] || []).sort((a,b) => a.n.at - b.n.at)}));
+  if(g._) out.push({sid:"_", t:null, items:g._.sort((a,b) => b.n.at - a.n.at)});
+  return out;
+}
+function groupText(G){
+  let out = G.t ? `\n=== ${G.t.label} · ${fdate(G.t.date)}${G.t.r ? ` · nota ${fmt2(G.t.r.score)}` : ""} ===\n` : "\n=== Otras notas ===\n";
+  if(G.t && G.t.note && G.t.note.trim()) out += `Notas del test: ${G.t.note.trim()}\n`;
+  G.items.forEach(({q, n}) => out += `\n• ${SHORT[q.t] || "Otros"}${q.src ? ` · ${q.src} nº ${q.n}` : ""}\nPregunta: ${q.q}\nRespuesta: ${q.o[q.a]}\nNota: ${n.t.trim()}\n`);
+  return out;
+}
+function notesText(G){
+  if(G) return "MIS NOTAS · Opos Técnico de Laboratorio\n" + groupText(G);
+  let out = "MIS NOTAS · Opos Técnico de Laboratorio\n";
+  noteGroups().forEach(x => out += groupText(x));
+  const tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
+  if(tn.length){ out += "\n=== Apuntes por tema ===\n"; tn.forEach(t => out += `\n• ${t.name}\n${S.notes[t.id].trim()}\n`); }
   return out;
 }
 function renderNotes(){
   chrome({title:"Mis notas", back:renderMore});
-  const list = notedList(), tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
-  const canShare = !!navigator.share;
-  app.innerHTML = `${head("Apuntes", "Mis notas", "Las notas que añades en cada pregunta. Cópialas o compártelas para pasarlas a tus apuntes.")}
-  ${list.length || tn.length ? `<div class="btnrow" style="margin-bottom:12px">
-      ${canShare ? `<button class="btn primary" id="nShare" style="flex:1;justify-content:center">${icon("share")}Compartir</button>` : ""}
-      <button class="btn${canShare ? "" : " primary"}" id="nCopy" style="flex:1;justify-content:center">Copiar todo</button>
-      ${list.length ? `<button class="btn" id="nPrac" style="flex:1;justify-content:center">Practicar estas</button>` : ""}
+  const groups = noteGroups(), tn = TOPICS.filter(t => S.notes[t.id] && S.notes[t.id].trim());
+  const canShare = !!navigator.share, nq = groups.reduce((a, G) => a + G.items.length, 0);
+  app.innerHTML = `${head("Apuntes", "Mis notas", "Ordenadas por test, del más reciente al más antiguo. Cópialas o compártelas para pasarlas a tus apuntes.")}
+  ${groups.length || tn.length ? `<div class="btnrow" style="margin-bottom:12px">
+      ${canShare ? `<button class="btn primary" data-share="*" style="flex:1;justify-content:center">${icon("share")}Compartir todo</button>` : ""}
+      <button class="btn${canShare ? "" : " primary"}" data-copy="*" style="flex:1;justify-content:center">Copiar todo</button>
+      ${nq ? `<button class="btn" id="nPrac" style="flex:1;justify-content:center">Practicar anotadas</button>` : ""}
     </div>
     <textarea id="nOut" hidden readonly style="min-height:160px;margin-bottom:12px"></textarea>` : ""}
   <div class="stack">
-    ${list.length ? list.map(({q}) => `<div class="card pad rev ncard">
-        <div class="qmeta" style="margin-bottom:8px">${tag(q.t)}${q.src ? `<span class="src">${esc(q.src)} · nº ${q.n}</span>` : ""}</div>
-        ${q.ctx ? caseBlock(q.ctx, false) : ""}
-        <p style="font-weight:600;margin:0 0 6px">${esc(q.q)}</p>
-        <p class="ans">✓ ${esc(q.o[q.a])}</p>
-        ${noteBlock(q)}
-        <button class="btn ghost danger" data-ndel="${q.id}" style="margin-top:6px;min-height:38px;padding:0 10px">Borrar nota</button>
-      </div>`).join("") : `<div class="card empty">Aún no tienes notas. Mientras practicas, toca <b>Añadir nota</b> debajo de cualquier pregunta.</div>`}
+    ${groups.length ? groups.map((G, gi) => `<div class="card ngroup">
+        <div class="cardhead" style="display:flex;align-items:center;gap:10px">
+          <div class="grow" style="min-width:0"><b>${G.t ? esc(G.t.label) : "Otras notas"}</b>
+            <div class="small muted">${G.t ? `${fdate(G.t.date)}${G.t.r ? ` · nota ${fmt2(G.t.r.score)} · ${G.t.r.ok} bien, ${G.t.r.fail} mal` : ""}` : "Notas sin test asociado"} · ${G.items.length} ${G.items.length === 1 ? "pregunta" : "preguntas"}</div></div>
+          <button class="btn ghost" data-${canShare ? "share" : "copy"}="${gi}" style="min-height:38px;padding:0 10px" aria-label="${canShare ? "Compartir" : "Copiar"} este test">${icon(canShare ? "share" : "doc")}</button>
+        </div>
+        <div class="pad stack" style="gap:12px">
+          ${G.t ? testNoteBlock(G.sid, G.t.note) : ""}
+          ${G.items.map(({q}) => `<div class="rev ncard" style="border-top:1px solid var(--line);padding-top:12px">
+            <div class="qmeta" style="margin-bottom:8px">${tag(q.t)}${q.src ? `<span class="src">${esc(q.src)} · nº ${q.n}</span>` : ""}</div>
+            <p style="font-weight:600;margin:0 0 6px">${esc(q.q)}</p>
+            <p class="ans">✓ ${esc(q.o[q.a])}</p>
+            ${noteBlock(q)}
+            <button class="btn ghost danger" data-ndel="${q.id}" style="margin-top:6px;min-height:38px;padding:0 10px">Borrar nota</button>
+          </div>`).join("")}
+          ${G.t ? `<button class="btn ghost danger" data-tdel="${G.sid}" style="min-height:38px;padding:0 10px;align-self:flex-start">Borrar notas de este test</button>` : ""}
+        </div>
+      </div>`).join("") : `<div class="card empty">Aún no tienes notas. Mientras haces un test, toca <b>Añadir nota</b> debajo de cualquier pregunta, o escribe en <b>Notas de este test</b> al terminar.</div>`}
     ${tn.length ? `<h3 style="margin:10px 0 0">Apuntes por tema <span class="count">${tn.length}</span></h3>${tn.map(t => `<div class="card pad" style="${tc(t.id)}"><div class="qmeta" style="margin-bottom:8px">${tag(t.id)}</div><div style="white-space:pre-wrap;font-size:.94rem">${esc(S.notes[t.id])}</div></div>`).join("")}` : ""}
   </div>`;
-  bindNotes();
-  const fallback = txt => { const o = $("#nOut"); o.hidden = false; o.value = txt; o.focus(); o.select(); toast("Selecciona y copia el texto que ha aparecido."); };
-  on("#nCopy", () => { const txt = notesText(); try{ navigator.clipboard.writeText(txt).then(() => toast("Notas copiadas. Pégalas en tus apuntes."), () => fallback(txt)); }catch(e){ fallback(txt); } });
-  on("#nShare", () => { navigator.share({title:"Mis notas · Opos Laboratorio", text:notesText()}).catch(() => {}); });
-  on("#nPrac", () => startSession({mode:"practice", label:"Preguntas con nota"}, notedList().map(x => x.q)));
+  bindNotes(); bindTestNotes();
+  const txtOf = k => k === "*" ? notesText() : notesText(noteGroups()[+k]);
+  const fallback = txt => { const o = $("#nOut"); o.hidden = false; o.value = txt; o.scrollIntoView({block:"center"}); o.focus(); o.select(); toast("Selecciona y copia el texto que ha aparecido."); };
+  app.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const txt = txtOf(b.dataset.copy); try{ navigator.clipboard.writeText(txt).then(() => toast("Notas copiadas. Pégalas en tus apuntes."), () => fallback(txt)); }catch(e){ fallback(txt); } });
+  app.querySelectorAll("[data-share]").forEach(b => b.onclick = () => navigator.share({title:"Mis notas · Opos Laboratorio", text:txtOf(b.dataset.share)}).catch(() => {}));
+  on("#nPrac", () => startSession({mode:"practice", label:"Preguntas anotadas"}, groups.flatMap(G => G.items.map(x => x.q))));
   app.querySelectorAll("[data-ndel]").forEach(b => b.onclick = async () => {
     if(!await ask("¿Borrar esta nota?", "Borrar")) return;
     delete S.qnotes[b.dataset.ndel]; save(); renderNotes();
+  });
+  app.querySelectorAll("[data-tdel]").forEach(b => b.onclick = async () => {
+    if(!await ask("¿Borrar las notas de este test y las de sus preguntas?", "Borrar")) return;
+    const sid = b.dataset.tdel; delete S.tests[sid];
+    Object.keys(S.qnotes).forEach(id => { if(S.qnotes[id].sid === sid) delete S.qnotes[id]; });
+    save(); renderNotes();
   });
 }
 function renderTemario(){
