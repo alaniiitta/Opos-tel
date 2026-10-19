@@ -52,6 +52,8 @@ html,body{min-height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
 button,input,select,textarea{font:inherit;color:inherit}
+body{overflow-x:clip} main,.dlg,.toast{overflow-wrap:break-word}
+@supports not (overflow:clip){body{overflow-x:hidden}}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 svg{flex:none}
 .wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -237,7 +239,7 @@ textarea{min-height:140px;resize:vertical;line-height:1.45}
 .qnbox{border:1px solid color-mix(in srgb,var(--warn) 35%,var(--line));background:var(--warn-soft);border-radius:var(--r);padding:10px 12px}
 .qnbox .xl{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .qnbox .xl svg{width:14px;height:14px;flex:none}
-.qnbox textarea{width:100%;min-height:72px;border:0;background:transparent;resize:vertical;padding:0;outline:none;font-size:.95rem;line-height:1.45}
+.qnbox textarea{width:100%;min-height:72px;border:0;background:transparent;resize:vertical;padding:0;outline:none;font-size:16px;line-height:1.45}
 .ncard .ans{font-size:.9rem;color:var(--ok);font-weight:600;margin:0 0 10px}
 .expl{margin-top:8px;font-size:.92rem;color:var(--ink-2)}
 .expl .xl{display:block;font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
